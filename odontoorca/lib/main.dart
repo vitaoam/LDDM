@@ -50,8 +50,45 @@ class WelcomeScreen extends StatelessWidget {
                   MaterialPageRoute(builder: (context) => const HomeScreen()),
                 );
               },
+              child: const Text("Começar", style: TextStyle(fontSize: 18)),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFB500),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+              ),
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CadastroScreen()),
+                );
+              },
+              child: const Text("Cadastrar", style: TextStyle(fontSize: 18)),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFB500),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+              ),
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
+              },
               child: const Text("Entrar", style: TextStyle(fontSize: 18)),
             ),
+
           ],
         ),
       ),
@@ -260,6 +297,317 @@ class CartScreen extends StatelessWidget {
   }
 }
 
+//TELA DE CADASTRO
+
+class CadastroScreen extends StatefulWidget {
+  const CadastroScreen({Key? key}) : super(key: key);
+
+  @override
+  CadastroScreenState createState() => CadastroScreenState();
+}
+
+class CadastroScreenState extends State<CadastroScreen> {
+  final _formKey = GlobalKey<FormState>();
+  bool preencheu = false;
+
+  TextEditingController passwordController = TextEditingController();
+  TextEditingController emailController = TextEditingController();
+  TextEditingController nameController = TextEditingController();
+  TextEditingController phoneController = TextEditingController();
+  TextEditingController cpfController = TextEditingController();
+  TextEditingController croController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      body: Container(
+        decoration: const BoxDecoration(
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            child: Container(
+              alignment: Alignment.center,
+              padding: const EdgeInsets.all(30.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    const SizedBox(height: 150.0),
+                    TextFormField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white24,
+                        labelText: 'Nome',
+                        labelStyle: TextStyle(color: Colors.white),
+                      ),
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) {
+                          return 'Escreva seu nome';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 10.0),
+                    TextFormField(
+                      controller: emailController,
+                      decoration: const InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white24,
+                        labelText: 'Email',
+                        labelStyle: TextStyle(color: Colors.white),
+                      ),
+                      validator: (value) {
+                        if (value!.isEmpty) {
+                          return 'Escreva seu E-mail';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 10.0),
+                    TextFormField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white24,
+                        labelText: 'Telefone',
+                        labelStyle: TextStyle(color: Colors.white),
+                      ),
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) {
+                          return 'Escreva seu telefone';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 10.0),
+                    TextFormField(
+                      controller: cpfController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white24,
+                        labelText: 'CPF',
+                        labelStyle: TextStyle(color: Colors.white),
+                      ),
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) {
+                          return 'Escrava seu CPF';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 10.0),
+                    TextFormField(
+                      controller: croController,
+                      decoration: const InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white24,
+                        labelText: 'CRO',
+                        labelStyle: TextStyle(color: Colors.white),
+                      ),
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) {
+                          return 'Escreva seu CRO';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 10.0),
+                    TextFormField(
+                      controller: passwordController,
+                      decoration: const InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white24,
+                        labelText: 'Senha',
+                        labelStyle: TextStyle(color: Colors.white),
+                      ),
+                      obscureText: true,
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) {
+                          return 'Escreva a senha';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 40.0),
+                    TextButton(
+                      onPressed: () {
+                        if (_formKey.currentState!.validate()) {
+                          setState(() {
+                            preencheu = true;
+                            Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (context) => const HomeScreen()),
+                            );
+                          });
+                        } else {
+                          setState(() {
+                            preencheu = false;
+                          });
+                          showDialog(
+                              context: context,
+                              builder: (_) =>
+                                  AlertDialog(
+                                      title: const Text(
+                                          "Precisa preencher os dados"),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context),
+                                          child: const Text("Ok"),
+                                        )
+                                      ]));
+                        }
+                      },
+                      style: ButtonStyle(
+                        foregroundColor:
+                        WidgetStateProperty.all<Color>(Colors.white),
+                        backgroundColor:
+                        WidgetStateProperty.all<Color>(const Color(0xFFFFB500)),
+                      ),
+                      child: const Text('Próximo'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+  }
+//TELA DE LOGIN
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({Key? key}) : super(key: key);
+
+  @override
+  LoginScreenState createState() => LoginScreenState();
+}
+
+class LoginScreenState extends State<LoginScreen> {
+  bool rememberMe = false;
+  bool isLoginConfirmed = false;
+  TextEditingController passwordController = TextEditingController();
+  TextEditingController emailController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      body: Container(
+        decoration: const BoxDecoration(
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              const SizedBox(height: 70.0),
+              const Text(
+                "Login",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24.0,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 30.0),
+              SizedBox(
+                width: 280.0,
+                child: TextField(
+                  controller: emailController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: "Email",
+                    hintStyle: const TextStyle(color: Colors.white),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                        color: Colors.transparent,
+                        width: 0.0,
+                      ),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.3),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 15.0),
+              SizedBox(
+                width: 280.0,
+                child: TextField(
+                  obscureText: true,
+                  controller: passwordController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: "Senha",
+                    hintStyle: const TextStyle(color: Colors.white),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.3),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                        color: Colors.transparent,
+                        width: 0.0,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10.0),
+              Row(
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.only(left: 45.0),
+                    child: Checkbox(
+                      value: rememberMe,
+                      fillColor:
+                      WidgetStateProperty.all<Color>(Colors.white),
+                      checkColor: const Color(0xFFFFB500),
+                      onChanged: (value) {
+                        setState(() {
+                          rememberMe = value!;
+                        });
+                      },
+                    ),
+                  ),
+                  const Text(
+                    "Lembrar de mim.",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20.0),
+              MaterialButton(
+                onPressed: () async {
+                  Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const HomeScreen()),
+                  );
+                },
+                color: const Color(0xFFFFB500),
+                child: const Text(
+                  "Entrar",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+  
+  
 // TELA PERFIL
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
