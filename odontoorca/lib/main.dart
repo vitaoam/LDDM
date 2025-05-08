@@ -1,6 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:salomon_bottom_bar/salomon_bottom_bar.dart';
 import 'package:animations/animations.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+import 'user.data';
+
+class DatabaseHelper{
+  static final DatabaseHelper
+  instance = DatabaseHelper._init();
+  static Database? _database;
+
+  DatabaseHelper._init();
+
+  Future<Database> get database async{
+    if(_database != null){
+      return _database!;
+    }
+    _database = await
+    _initDB('users.db');
+    return _database!;
+  }
+}
+
+Future<Database> _initDB(String filePath) async{
+  final dbPath = await
+  getDatabasesPath();
+  final path = join(dbPath, filePath);
+
+  return await openDatabase(
+    path,
+    version: 1,
+    onCreate: _createDB,
+  );
+}
+
+Future _createDB(Database db, int version) async{
+
+}
 
 void main() {
   runApp(const MyApp());
@@ -1367,5 +1403,40 @@ class DetalhesClientePage extends StatelessWidget {
   }
 }
 
+class User{
+  final int? id;
+  final String nome;
+  final String email;
+  final int telefone;
+  final int cpf;
+  final int cro;
+  final int senha;
 
+  User({this.id, required this.nome, required this.email, required this.telefone,
+  required this.cpf, required this.cro, required this.senha});
+
+  Map<String, dynamic> toMap(){
+  return{
+  'id': id,
+  'nome' : nome,
+  'email' : email,
+  'telefone' : telefone,
+  'cpf' : cpf,
+  'cro' : cro,
+  'senha' : senha,
+  };
+  }
+
+  factory User.fromMap(Map<String, dynamic> map){
+  return User(
+  id : map['id'],
+  nome : map['nome'],
+  email : map['email'],
+  telefone : map['telefone'],
+  cpf : map['cpf'],
+  cro : map['cro'],
+  senha : map['senha'],
+  );
+  }
+}
 
