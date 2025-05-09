@@ -2,41 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:salomon_bottom_bar/salomon_bottom_bar.dart';
 import 'package:animations/animations.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
-import 'user.data';
-
-class DatabaseHelper{
-  static final DatabaseHelper
-  instance = DatabaseHelper._init();
-  static Database? _database;
-
-  DatabaseHelper._init();
-
-  Future<Database> get database async{
-    if(_database != null){
-      return _database!;
-    }
-    _database = await
-    _initDB('users.db');
-    return _database!;
-  }
-}
-
-Future<Database> _initDB(String filePath) async{
-  final dbPath = await
-  getDatabasesPath();
-  final path = join(dbPath, filePath);
-
-  return await openDatabase(
-    path,
-    version: 1,
-    onCreate: _createDB,
-  );
-}
-
-Future _createDB(Database db, int version) async{
-
-}
+import 'package:path/path.dart' as path;
+import 'database_helper.dart';
+import 'user.dart';
+import 'cliente.dart';
 
 void main() {
   runApp(const MyApp());
@@ -71,23 +40,6 @@ class WelcomeScreen extends StatelessWidget {
           children: [
             Image.asset('assets/images/sven.jpeg'),
             const SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFB500),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-              ),
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const HomeScreen()),
-                );
-              },
-              child: const Text("Começar", style: TextStyle(fontSize: 18)),
-            ),
             const SizedBox(height: 10),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -133,7 +85,8 @@ class WelcomeScreen extends StatelessWidget {
 }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final User user;
+  const HomeScreen({super.key, required this.user});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -142,11 +95,17 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
-  final List<Widget> _screens = [
-    const ConsultaScreen(),
-    const CartScreen(),
-    const ProfileScreen(),
-  ];
+  late final List<Widget> _screens;
+
+  void initState(){
+    super.initState();
+    _screens = [
+      ConsultaScreen(user: widget.user),
+      CartScreen(),
+      ProfileScreen(user: widget.user),
+    ];
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -209,7 +168,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
 // TELA CONSULTAS
 class ConsultaScreen extends StatelessWidget {
-  const ConsultaScreen({super.key});
+  final User user;
+  const ConsultaScreen({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
@@ -225,12 +185,12 @@ class ConsultaScreen extends StatelessWidget {
           _buildAnimatedButton(
             context,
             label: "Realizar Consulta",
-            destination: const RealizarConsultaScreen(),
+            destination: RealizarConsultaScreen(dentistaId: user.id!),
           ),
           _buildAnimatedButton(
             context,
             label: "Consultar Cliente",
-            destination: const ConsultarClienteScreen(),
+            destination: ConsultarClienteScreen(dentistaId: user.id!),
           ),
         ],
       ),
@@ -334,7 +294,6 @@ class CartScreen extends StatelessWidget {
 }
 
 //TELA DE CADASTRO
-
 class CadastroScreen extends StatefulWidget {
   const CadastroScreen({Key? key}) : super(key: key);
 
@@ -471,32 +430,40 @@ class CadastroScreenState extends State<CadastroScreen> {
                     ),
                     const SizedBox(height: 40.0),
                     TextButton(
-                      onPressed: () {
+                      onPressed: () async {
                         if (_formKey.currentState!.validate()) {
+                          final user = User(
+                          nome: nameController.text,
+                          email: emailController.text,
+                          telefone: phoneController.text,
+                          cpf: cpfController.text,
+                          cro: croController.text,
+                          senha: passwordController.text,
+                          );
+                          await DatabaseHelper.instance.insertUser(user);
                           setState(() {
-                            preencheu = true;
-                            Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(builder: (context) => const HomeScreen()),
-                            );
+                          preencheu = true;
                           });
-                        } else {
+                          Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => const LoginScreen()),
+                          );
+                          } else {
                           setState(() {
                             preencheu = false;
                           });
                           showDialog(
-                              context: context,
-                              builder: (_) =>
-                                  AlertDialog(
-                                      title: const Text(
-                                          "Precisa preencher os dados"),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context),
-                                          child: const Text("Ok"),
-                                        )
-                                      ]));
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: const Text("Precisa preencher os dados"),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text("Ok"),
+                                )
+                              ],
+                            ),
+                          );
                         }
                       },
                       style: ButtonStyle(
@@ -517,8 +484,8 @@ class CadastroScreenState extends State<CadastroScreen> {
     );
   }
   }
-//TELA DE LOGIN
 
+//TELA DE LOGIN
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
 
@@ -621,10 +588,20 @@ class LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 20.0),
               MaterialButton(
                 onPressed: () async {
-                  Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => const HomeScreen()),
+                  final user = await DatabaseHelper.instance.getUserByEmailAndPassword(
+                    emailController.text,
+                    passwordController.text,
                   );
+                  if (user != null) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => HomeScreen(user: user)),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Email ou senha inválidos")),
+                    );
+                  }
                 },
                 color: const Color(0xFFFFB500),
                 child: const Text(
@@ -643,10 +620,10 @@ class LoginScreenState extends State<LoginScreen> {
   }
 }
   
-  
 // TELA PERFIL
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+  final User user;
+  const ProfileScreen({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
@@ -660,6 +637,12 @@ class ProfileScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Text("Nome: ${user.nome}"),
+            Text("Email: ${user.email}"),
+            Text("Telefone: ${user.telefone}"),
+            Text("Cpf: ${user.cpf}"),
+            Text("Cro: ${user.cro}"),
+            Text("Senha: ${user.senha}"),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFFB500),
@@ -693,19 +676,6 @@ class Orcamento {
   Orcamento({required this.nome, required this.descricao, required this.valor});
 }
 
-class Cliente {
-  final String id;
-  final String nome;
-  final String telefone;
-
-  Cliente({
-    required this.id,
-    required this.nome,
-    required this.telefone,
-  });
-}
-
-List<Cliente> clientes = [];
 
 List<Orcamento> orcamentos = [];
 
@@ -873,7 +843,8 @@ class _EditBudgetScreenState extends State<EditBudgetScreen> {
 }
 
 class RealizarConsultaScreen extends StatefulWidget {
-  const RealizarConsultaScreen({super.key});
+  final int dentistaId;
+  const RealizarConsultaScreen({super.key, required this.dentistaId});
 
   @override
   State<RealizarConsultaScreen> createState() => _RealizarConsultaScreenState();
@@ -883,7 +854,7 @@ class _RealizarConsultaScreenState extends State<RealizarConsultaScreen> {
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _telefoneController = TextEditingController();
 
-  void _iniciarConsulta() {
+  void _iniciarConsulta() async {
     final nomeCliente = _nomeController.text.trim();
     final telefoneCliente = _telefoneController.text.trim();
 
@@ -896,22 +867,13 @@ class _RealizarConsultaScreenState extends State<RealizarConsultaScreen> {
 
     // Adiciona o cliente à lista global
     final novoCliente = Cliente(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
       nome: nomeCliente,
       telefone: telefoneCliente,
+      dentistaId: widget.dentistaId,
     );
-    setState(() {
-      clientes.add(novoCliente);
-    });
+    await DatabaseHelper.instance.insertCliente(novoCliente);
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TelaConsultaDetalhes(
-          nomeCliente: nomeCliente,
-        ),
-      ),
-    );
+    Navigator.pop(context);
   }
 
   @override
@@ -1005,7 +967,8 @@ class _RealizarConsultaScreenState extends State<RealizarConsultaScreen> {
 }
 
 class ConsultarClienteScreen extends StatelessWidget {
-  const ConsultarClienteScreen({super.key});
+  final int dentistaId;
+  const ConsultarClienteScreen({super.key, required this.dentistaId});
 
   @override
   Widget build(BuildContext context) {
@@ -1015,54 +978,47 @@ class ConsultarClienteScreen extends StatelessWidget {
         backgroundColor: const Color(0xFFFFB500),
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: "Pesquisar cliente...",
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: clientes.length,
-              itemBuilder: (context, index) {
-                final cliente = clientes[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ListTile(
-                    title: Text(cliente.nome),
-                    subtitle: Text(cliente.telefone),
-                    trailing: const Icon(Icons.arrow_forward),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => DetalhesClientePage(cliente: cliente),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+      body: FutureBuilder<List<Cliente>>(
+        future: DatabaseHelper.instance.getClientesByDentista(dentistaId),
+        builder: (context, snapshot){
+          if(!snapshot.hasData){
+            return const CircularProgressIndicator();
+          }
+          final clientes = snapshot.data!;
+          if(clientes.isEmpty){
+            return const Text("Nenhum cliente cadastrado.");
+          }
+          return ListView.builder(
+            itemCount: clientes.length,
+            itemBuilder: (context, index) {
+              final cliente = clientes[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  title: Text(cliente.nome),
+                  subtitle: Text(cliente.telefone),
+                  trailing: const Icon(Icons.arrow_forward),
+                  onTap: (){
+                    Navigator.push(
+                     context,
+                     MaterialPageRoute(
+                         builder: (context) => DetalhesClientePage(cliente: cliente)), 
+                    );
+                  }
+                )
+              );
+            }
+          );
+        }
+      )
     );
   }
 }
 
 class TelaConsultaDetalhes extends StatefulWidget {
   final String nomeCliente;
-
-  const TelaConsultaDetalhes({super.key, required this.nomeCliente});
+  final int dentistaId;
+  const TelaConsultaDetalhes({super.key, required this.nomeCliente, required this.dentistaId});
 
   @override
   State<TelaConsultaDetalhes> createState() => _TelaConsultaDetalhesState();
@@ -1089,9 +1045,10 @@ class _TelaConsultaDetalhesState extends State<TelaConsultaDetalhes> {
       MaterialPageRoute(
         builder: (context) => RelatorioConsultaPage(
           cliente: Cliente(
-            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            id: DateTime.now().millisecondsSinceEpoch,
             nome: widget.nomeCliente,
-            telefone: '', // Você pode passar o telefone se tiver
+            telefone: '',
+            dentistaId: widget.dentistaId,
           ),
         ),
       ),
@@ -1262,7 +1219,6 @@ class _EditarOrcamentoScreenState extends State<EditarOrcamentoScreen> {
 
 class RelatorioConsultaPage extends StatelessWidget {
   final Cliente cliente;
-
   const RelatorioConsultaPage({super.key, required this.cliente});
 
   @override
@@ -1403,40 +1359,5 @@ class DetalhesClientePage extends StatelessWidget {
   }
 }
 
-class User{
-  final int? id;
-  final String nome;
-  final String email;
-  final int telefone;
-  final int cpf;
-  final int cro;
-  final int senha;
 
-  User({this.id, required this.nome, required this.email, required this.telefone,
-  required this.cpf, required this.cro, required this.senha});
-
-  Map<String, dynamic> toMap(){
-  return{
-  'id': id,
-  'nome' : nome,
-  'email' : email,
-  'telefone' : telefone,
-  'cpf' : cpf,
-  'cro' : cro,
-  'senha' : senha,
-  };
-  }
-
-  factory User.fromMap(Map<String, dynamic> map){
-  return User(
-  id : map['id'],
-  nome : map['nome'],
-  email : map['email'],
-  telefone : map['telefone'],
-  cpf : map['cpf'],
-  cro : map['cro'],
-  senha : map['senha'],
-  );
-  }
-}
 
