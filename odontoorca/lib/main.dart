@@ -6,6 +6,7 @@ import 'package:path/path.dart' as path;
 import 'database_helper.dart';
 import 'user.dart';
 import 'cliente.dart';
+import 'orcamento.dart';
 
 void main() {
   runApp(const MyApp());
@@ -84,6 +85,7 @@ class WelcomeScreen extends StatelessWidget {
   }
 }
 
+//TELA PRINCIPAL
 class HomeScreen extends StatefulWidget {
   final User user;
   const HomeScreen({super.key, required this.user});
@@ -101,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _screens = [
       ConsultaScreen(user: widget.user),
-      CartScreen(),
+      CartScreen(user: widget.user),
       ProfileScreen(user: widget.user),
     ];
   }
@@ -232,7 +234,8 @@ class ConsultaScreen extends StatelessWidget {
 
 // TELA ORÇAMENTOS
 class CartScreen extends StatelessWidget {
-  const CartScreen({super.key});
+  final User user;
+  const CartScreen({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
@@ -248,12 +251,12 @@ class CartScreen extends StatelessWidget {
           _buildAnimatedButton(
             context,
             label: "Criar Orçamento",
-            destination: const CreateBudgetScreen(),
+            destination: CreateBudgetScreen(dentistaId: user.id!),
           ),
           _buildAnimatedButton(
             context,
             label: "Editar Orçamento",
-            destination: const EditBudgetScreen(),
+            destination: EditBudgetScreen(dentistaId: user.id!),
           ),
         ],
       ),
@@ -316,6 +319,20 @@ class CadastroScreenState extends State<CadastroScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+            );
+          },
+        ),
+        title: const Text("Cadastro"),
+        backgroundColor: const Color(0xFFFFB500),
+        centerTitle: true,
+      ),
       body: Container(
         decoration: const BoxDecoration(
         ),
@@ -355,11 +372,11 @@ class CadastroScreenState extends State<CadastroScreen> {
                         labelStyle: TextStyle(color: Colors.white),
                       ),
                       validator: (value) {
-                        if (value!.isEmpty) {
-                          return 'Escreva seu E-mail';
-                        }
+                        if (value == null || value.trim().isEmpty) return "Preencha este campo";
+                        if (!value.contains('@')) return "Email inválido";
                         return null;
                       },
+
                     ),
                     const SizedBox(height: 10.0),
                     TextFormField(
@@ -389,9 +406,8 @@ class CadastroScreenState extends State<CadastroScreen> {
                         labelStyle: TextStyle(color: Colors.white),
                       ),
                       validator: (value) {
-                        if (value?.isEmpty ?? true) {
-                          return 'Escrava seu CPF';
-                        }
+                        if (value == null || value.trim().isEmpty) return "Preencha este campo";
+                        if (!validarCPF(value)) return "CPF inválido";
                         return null;
                       },
                     ),
@@ -422,8 +438,11 @@ class CadastroScreenState extends State<CadastroScreen> {
                       ),
                       obscureText: true,
                       validator: (value) {
-                        if (value?.isEmpty ?? true) {
+                        if (value == null || value.isEmpty) {
                           return 'Escreva a senha';
+                        }
+                        if (value.length < 8) {
+                          return 'A senha deve ter no mínimo 8 caracteres';
                         }
                         return null;
                       },
@@ -503,6 +522,20 @@ class LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: false,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+            );
+          },
+        ),
+        title: const Text("Login"),
+        backgroundColor: const Color(0xFFFFB500),
+        centerTitle: true,
+      ),
       body: Container(
         decoration: const BoxDecoration(
         ),
@@ -629,58 +662,91 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Perfil"),
+        title: const Text("Perfil do Dentista"),
         backgroundColor: const Color(0xFFFFB500),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            tooltip: "Sair",
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+              );
+            },
+          ),
+        ],
       ),
-      body: Center(
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text("Nome: ${user.nome}"),
-            Text("Email: ${user.email}"),
-            Text("Telefone: ${user.telefone}"),
-            Text("Cpf: ${user.cpf}"),
-            Text("Cro: ${user.cro}"),
-            Text("Senha: ${user.senha}"),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFB500),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+            const SizedBox(height: 32),
+            CircleAvatar(
+              radius: 48,
+              backgroundColor: Colors.grey[300],
+              child: Icon(Icons.person, size: 60, color: Colors.grey[700]),
+            ),
+            const SizedBox(height: 24),
+            _profileField("Nome", user.nome),
+            _profileField("Email", user.email),
+            _profileField("Telefone", user.telefone),
+            _profileField("CPF", user.cpf),
+            _profileField("CRO", user.cro),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.edit, color: Colors.white),
+                label: const Text("Editar Perfil", style: TextStyle(fontSize: 18, color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFB500),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EditProfileScreen(user: user),
+                    ),
+                  );
+                  if (result is User) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => ProfileScreen(user: result)),
+                    );
+                  }
+                },
               ),
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const WelcomeScreen()),
-                );
-              },
-              child: const Text("Logout", style: TextStyle(fontSize: 18)),
             ),
           ],
         ),
       ),
     );
   }
+
+  Widget _profileField(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Text("$label: ", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Expanded(
+            child: Text(value, style: const TextStyle(fontSize: 16)),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // TELAS AUXILIARES
-class Orcamento {
-  String nome;
-  String descricao;
-  double valor;
-
-  Orcamento({required this.nome, required this.descricao, required this.valor});
-}
-
-
-List<Orcamento> orcamentos = [];
 
 class CreateBudgetScreen extends StatefulWidget {
-  const CreateBudgetScreen({super.key});
+  final int dentistaId;
+  const CreateBudgetScreen({super.key, required this.dentistaId});
 
   @override
   State<CreateBudgetScreen> createState() => _CreateBudgetScreenState();
@@ -691,7 +757,7 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
   final TextEditingController _descricaoController = TextEditingController();
   final TextEditingController _valorController = TextEditingController();
 
-  void _salvarOrcamento() {
+  void _salvarOrcamento() async {
     String nome = _nomeController.text.trim();
     String descricao = _descricaoController.text.trim();
     double? valor = double.tryParse(_valorController.text);
@@ -703,7 +769,13 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
       return;
     }
 
-    orcamentos.add(Orcamento(nome: nome, descricao: descricao, valor: valor));
+    final novoOrcamento = Orcamento(
+      nome: nome,
+      descricao: descricao,
+      valor: valor,
+      dentistaId: widget.dentistaId,
+    );
+    await DatabaseHelper.instance.insertOrcamento(novoOrcamento);
     Navigator.pop(context);
   }
 
@@ -763,13 +835,28 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
 }
 
 class EditBudgetScreen extends StatefulWidget {
-  const EditBudgetScreen({super.key});
+  final int dentistaId;
+  const EditBudgetScreen({super.key, required this.dentistaId});
 
   @override
   State<EditBudgetScreen> createState() => _EditBudgetScreenState();
 }
 
 class _EditBudgetScreenState extends State<EditBudgetScreen> {
+  late Future<List<Orcamento>> _orcamentosFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _orcamentosFuture = DatabaseHelper.instance.getOrcamentosByDentista(widget.dentistaId);
+  }
+
+  void _refresh() {
+    setState(() {
+      _orcamentosFuture = DatabaseHelper.instance.getOrcamentosByDentista(widget.dentistaId);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -778,63 +865,51 @@ class _EditBudgetScreenState extends State<EditBudgetScreen> {
         backgroundColor: const Color(0xFFFFB500),
         centerTitle: true,
       ),
-      body: ListView.builder(
-        itemCount: orcamentos.length,
-        itemBuilder: (context, index) {
-          final o = orcamentos[index];
-          return Card(
-            color: Colors.grey[850],
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: ListTile(
-              title: Text(o.nome, style: const TextStyle(color: Colors.white)),
-              subtitle: Text("R\$ ${o.valor.toStringAsFixed(2)}\n${o.descricao}", style: const TextStyle(color: Colors.white70)),
-              isThreeLine: true,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.white),
-                    onPressed: () async {
-                      final resultado = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => EditarOrcamentoScreen(orcamento: o),
-                        ),
-                      );
-                      if (resultado == true) setState(() {});
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.redAccent),
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text("Excluir Orçamento"),
-                          content: const Text("Tem certeza que deseja excluir este orçamento?"),
-                          actions: [
-                            TextButton(
-                              child: const Text("Cancelar"),
-                              onPressed: () => Navigator.of(ctx).pop(),
+      body: FutureBuilder<List<Orcamento>>(
+        future: _orcamentosFuture,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          final orcamentos = snapshot.data!;
+          if (orcamentos.isEmpty) return const Center(child: Text("Nenhum orçamento cadastrado."));
+          return ListView.builder(
+            itemCount: orcamentos.length,
+            itemBuilder: (context, index) {
+              final o = orcamentos[index];
+              return Card(
+                color: Colors.grey[850],
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: ListTile(
+                  title: Text(o.nome, style: const TextStyle(color: Colors.white)),
+                  subtitle: Text("R\$ ${o.valor.toStringAsFixed(2)}\n${o.descricao}", style: const TextStyle(color: Colors.white70)),
+                  isThreeLine: true,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.white),
+                        onPressed: () async {
+                          final resultado = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EditarOrcamentoScreen(orcamento: o),
                             ),
-                            TextButton(
-                              child: const Text("Excluir", style: TextStyle(color: Colors.red)),
-                              onPressed: () {
-                                setState(() {
-                                  orcamentos.removeAt(index);
-                                });
-                                Navigator.of(ctx).pop();
-                              },
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                          );
+                          if (resultado == true) _refresh();
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.redAccent),
+                        onPressed: () async {
+                          await DatabaseHelper.instance.deleteOrcamento(o.id!);
+                          _refresh();
+                        },
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           );
         },
       ),
@@ -871,9 +946,22 @@ class _RealizarConsultaScreenState extends State<RealizarConsultaScreen> {
       telefone: telefoneCliente,
       dentistaId: widget.dentistaId,
     );
-    await DatabaseHelper.instance.insertCliente(novoCliente);
+    final idCliente = await DatabaseHelper.instance.insertCliente(novoCliente);
 
-    Navigator.pop(context);
+// Recupere o cliente recém-criado do banco (com id correto)
+    final clienteSalvo = Cliente(
+      id: idCliente,
+      nome: nomeCliente,
+      telefone: telefoneCliente,
+      dentistaId: widget.dentistaId,
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TelaConsultaDetalhes(cliente: clienteSalvo),
+      ),
+    );
   }
 
   @override
@@ -1016,9 +1104,8 @@ class ConsultarClienteScreen extends StatelessWidget {
 }
 
 class TelaConsultaDetalhes extends StatefulWidget {
-  final String nomeCliente;
-  final int dentistaId;
-  const TelaConsultaDetalhes({super.key, required this.nomeCliente, required this.dentistaId});
+  final Cliente cliente;
+  const TelaConsultaDetalhes({super.key, required this.cliente});
 
   @override
   State<TelaConsultaDetalhes> createState() => _TelaConsultaDetalhesState();
@@ -1044,12 +1131,7 @@ class _TelaConsultaDetalhesState extends State<TelaConsultaDetalhes> {
       context,
       MaterialPageRoute(
         builder: (context) => RelatorioConsultaPage(
-          cliente: Cliente(
-            id: DateTime.now().millisecondsSinceEpoch,
-            nome: widget.nomeCliente,
-            telefone: '',
-            dentistaId: widget.dentistaId,
-          ),
+          cliente: widget.cliente,
         ),
       ),
     );
@@ -1141,7 +1223,7 @@ class _EditarOrcamentoScreenState extends State<EditarOrcamentoScreen> {
     _valorController = TextEditingController(text: widget.orcamento.valor.toString());
   }
 
-  void _salvarEdicao() {
+  void _salvarEdicao() async {
     final nome = _nomeController.text.trim();
     final descricao = _descricaoController.text.trim();
     final valor = double.tryParse(_valorController.text);
@@ -1153,11 +1235,15 @@ class _EditarOrcamentoScreenState extends State<EditarOrcamentoScreen> {
       return;
     }
 
-    setState(() {
-      widget.orcamento.nome = nome;
-      widget.orcamento.descricao = descricao;
-      widget.orcamento.valor = valor;
-    });
+    final orcamentoEditado = Orcamento(
+      id: widget.orcamento.id,
+      nome: nome,
+      descricao: descricao,
+      valor: valor,
+      dentistaId: widget.orcamento.dentistaId,
+    );
+
+    await DatabaseHelper.instance.updateOrcamento(orcamentoEditado);
 
     Navigator.pop(context, true);
   }
@@ -1359,5 +1445,184 @@ class DetalhesClientePage extends StatelessWidget {
   }
 }
 
+class EditProfileScreen extends StatefulWidget {
+  final User user;
+  const EditProfileScreen({super.key, required this.user});
+
+  @override
+  State<EditProfileScreen> createState() => _EditProfileScreenState();
+}
+
+class _EditProfileScreenState extends State<EditProfileScreen> {
+  late TextEditingController _nomeController;
+  late TextEditingController _emailController;
+  late TextEditingController _telefoneController;
+  late TextEditingController _cpfController;
+  late TextEditingController _croController;
+  late TextEditingController _senhaController;
+
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _nomeController = TextEditingController(text: widget.user.nome);
+    _emailController = TextEditingController(text: widget.user.email);
+    _telefoneController = TextEditingController(text: widget.user.telefone);
+    _cpfController = TextEditingController(text: widget.user.cpf);
+    _croController = TextEditingController(text: widget.user.cro);
+    _senhaController = TextEditingController(text: widget.user.senha);
+  }
+
+  @override
+  void dispose() {
+    _nomeController.dispose();
+    _emailController.dispose();
+    _telefoneController.dispose();
+    _cpfController.dispose();
+    _croController.dispose();
+    _senhaController.dispose();
+    super.dispose();
+  }
+
+  void _salvarEdicao() async {
+    if (_formKey.currentState!.validate()) {
+      final userEditado = User(
+        id: widget.user.id,
+        nome: _nomeController.text.trim(),
+        email: _emailController.text.trim(),
+        telefone: _telefoneController.text.trim(),
+        cpf: _cpfController.text.trim(),
+        cro: _croController.text.trim(),
+        senha: _senhaController.text.trim(),
+      );
+      await DatabaseHelper.instance.updateUser(userEditado);
+      Navigator.pop(context, userEditado);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Editar Perfil"),
+        backgroundColor: const Color(0xFFFFB500),
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            children: [
+              _buildTextField(_nomeController, "Nome", validator: (value) {
+                if (value == null || value.trim().isEmpty) return "Preencha este campo";
+                return null;
+              }),
+              const SizedBox(height: 12),
+              _buildTextField(_emailController, "Email", email: true, validator: (value) {
+                if (value == null || value.trim().isEmpty) return "Preencha este campo";
+                if (!value.contains('@')) return "Email inválido";
+                return null;
+              }),
+              const SizedBox(height: 12),
+              _buildTextField(_telefoneController, "Telefone", validator: (value) {
+                if (value == null || value.trim().isEmpty) return "Preencha este campo";
+                return null;
+              }),
+              const SizedBox(height: 12),
+              _buildTextField(_cpfController, "CPF", validator: (value) {
+                if (value == null || value.trim().isEmpty) return "Preencha este campo";
+                if (!validarCPF(value)) return "CPF inválido";
+                return null;
+              }),
+              const SizedBox(height: 12),
+              _buildTextField(_croController, "CRO", validator: (value) {
+                if (value == null || value.trim().isEmpty) return "Preencha este campo";
+                return null;
+              }),
+              const SizedBox(height: 12),
+              _buildTextField(_senhaController, "Senha", obscure: true, validator: (value) {
+                if (value == null || value.trim().isEmpty) return "Preencha este campo";
+                if (value.length < 8) return "A senha deve ter no mínimo 8 caracteres";
+                return null;
+              }),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _salvarEdicao,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFB500),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  ),
+                  child: const Text(
+                    "Salvar Alterações",
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
 
+  Widget _buildTextField(
+      TextEditingController controller,
+      String label, {
+        bool email = false,
+        bool obscure = false,
+        String? Function(String?)? validator,
+      }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: email ? TextInputType.emailAddress : TextInputType.text,
+      obscureText: obscure,
+      style: const TextStyle(color: Colors.white),
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.white70),
+        filled: true,
+        fillColor: Colors.grey[800],
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+      ),
+    );
+  }
+
+}
+
+bool validarCPF(String cpf) {
+  cpf = cpf.replaceAll(RegExp(r'[^0-9]'), '');
+
+  if (cpf.length != 11) return false;
+  if (RegExp(r'^(\d)\1*$').hasMatch(cpf)) return false;
+
+  // Validação dos dígitos verificadores
+  List<int> numbers = cpf.split('').map(int.parse).toList();
+
+  int soma = 0;
+  for (int i = 0; i < 9; i++) {
+    soma += numbers[i] * (10 - i);
+  }
+  int primeiroDigito = 11 - (soma % 11);
+  if (primeiroDigito >= 10) primeiroDigito = 0;
+  if (numbers[9] != primeiroDigito) return false;
+
+  soma = 0;
+  for (int i = 0; i < 10; i++) {
+    soma += numbers[i] * (11 - i);
+  }
+  int segundoDigito = 11 - (soma % 11);
+  if (segundoDigito >= 10) segundoDigito = 0;
+  if (numbers[10] != segundoDigito) return false;
+
+  return true;
+}
