@@ -5,7 +5,6 @@ import 'main.dart';
 import 'loginScreen.dart';
 import 'telasAuxiliares.dart';
 
-//TELA DE CADASTRO
 class CadastroScreen extends StatefulWidget {
   const CadastroScreen({Key? key}) : super(key: key);
 
@@ -28,124 +27,101 @@ class CadastroScreenState extends State<CadastroScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-            );
-          },
-        ),
-        title: const Text("Cadastro"),
-        backgroundColor: const Color(0xFFFFB500),
-        centerTitle: true,
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-        ),
-        child: Center(
-          child: SingleChildScrollView(
-            child: Container(
-              alignment: Alignment.center,
-              padding: const EdgeInsets.all(30.0),
-              child: Form(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Botão de voltar
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+              const Center(
+                child: Text(
+                  "Cadastro",
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFFFB500),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
+              Form(
                 key: _formKey,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    const SizedBox(height: 150.0),
+                  children: [
                     TextFormField(
                       controller: nameController,
-                      decoration: const InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white24,
-                        labelText: 'Nome',
-                        labelStyle: TextStyle(color: Colors.white),
-                      ),
-                      validator: (value) {
-                        if (value?.isEmpty ?? true) {
-                          return 'Escreva seu nome';
-                        }
-                        return null;
-                      },
+                      style: const TextStyle(fontSize: 18),
+                      decoration: _inputDecoration("Nome"),
+                      validator:
+                          (value) =>
+                              (value?.isEmpty ?? true)
+                                  ? 'Escreva seu nome'
+                                  : null,
                     ),
-                    const SizedBox(height: 10.0),
+                    const SizedBox(height: 20),
                     TextFormField(
                       controller: emailController,
-                      decoration: const InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white24,
-                        labelText: 'Email',
-                        labelStyle: TextStyle(color: Colors.white),
-                      ),
+                      style: const TextStyle(fontSize: 18),
+                      decoration: _inputDecoration("Email"),
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) return "Preencha este campo";
+                        if (value == null || value.trim().isEmpty) {
+                          return "Preencha este campo";
+                        }
                         if (!value.contains('@')) return "Email inválido";
                         return null;
                       },
-
                     ),
-                    const SizedBox(height: 10.0),
+                    const SizedBox(height: 20),
                     TextFormField(
                       controller: phoneController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white24,
-                        labelText: 'Telefone',
-                        labelStyle: TextStyle(color: Colors.white),
-                      ),
-                      validator: (value) {
-                        if (value?.isEmpty ?? true) {
-                          return 'Escreva seu telefone';
-                        }
-                        return null;
-                      },
+                      style: const TextStyle(fontSize: 18),
+                      decoration: _inputDecoration("Telefone"),
+                      validator:
+                          (value) =>
+                              (value?.isEmpty ?? true)
+                                  ? 'Escreva seu telefone'
+                                  : null,
                     ),
-                    const SizedBox(height: 10.0),
+                    const SizedBox(height: 20),
                     TextFormField(
                       controller: cpfController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white24,
-                        labelText: 'CPF',
-                        labelStyle: TextStyle(color: Colors.white),
-                      ),
+                      decoration: _inputDecoration("CPF"),
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) return "Preencha este campo";
-                        if (!validarCPF(value)) return "CPF inválido";
-                        return null;
+                        if (value == null || value.trim().isEmpty) {
+                          return "Preencha este campo";
+                        }
                       },
                     ),
-                    const SizedBox(height: 10.0),
+                    const SizedBox(height: 20),
                     TextFormField(
                       controller: croController,
-                      decoration: const InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white24,
-                        labelText: 'CRO',
-                        labelStyle: TextStyle(color: Colors.white),
-                      ),
-                      validator: (value) {
-                        if (value?.isEmpty ?? true) {
-                          return 'Escreva seu CRO';
-                        }
-                        return null;
-                      },
+                      style: const TextStyle(fontSize: 18),
+                      decoration: _inputDecoration("CRO"),
+                      validator:
+                          (value) =>
+                              (value?.isEmpty ?? true)
+                                  ? 'Escreva seu CRO'
+                                  : null,
                     ),
-                    const SizedBox(height: 10.0),
+                    const SizedBox(height: 20),
                     TextFormField(
                       controller: passwordController,
-                      decoration: const InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white24,
-                        labelText: 'Senha',
-                        labelStyle: TextStyle(color: Colors.white),
-                      ),
                       obscureText: true,
+                      style: const TextStyle(fontSize: 18),
+                      decoration: _inputDecoration("Senha"),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Escreva a senha';
@@ -156,8 +132,8 @@ class CadastroScreenState extends State<CadastroScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 40.0),
-                    TextButton(
+                    const SizedBox(height: 40),
+                    ElevatedButton(
                       onPressed: () async {
                         if (_formKey.currentState!.validate()) {
                           final user = User(
@@ -169,45 +145,77 @@ class CadastroScreenState extends State<CadastroScreen> {
                             senha: passwordController.text,
                           );
                           await DatabaseHelper.instance.insertUser(user);
-                          setState(() {
-                            preencheu = true;
-                          });
+                          setState(() => preencheu = true);
                           Navigator.pushReplacement(
                             context,
-                            MaterialPageRoute(builder: (context) => const LoginScreen()),
+                            MaterialPageRoute(
+                              builder: (context) => const LoginScreen(),
+                            ),
                           );
                         } else {
-                          setState(() {
-                            preencheu = false;
-                          });
+                          setState(() => preencheu = false);
                           showDialog(
                             context: context,
-                            builder: (_) => AlertDialog(
-                              title: const Text("Precisa preencher os dados"),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text("Ok"),
-                                )
-                              ],
-                            ),
+                            builder:
+                                (_) => AlertDialog(
+                                  title: const Text(
+                                    "Precisa preencher os dados",
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text("Ok"),
+                                    ),
+                                  ],
+                                ),
                           );
                         }
                       },
-                      style: ButtonStyle(
-                        foregroundColor:
-                        WidgetStateProperty.all<Color>(Colors.white),
-                        backgroundColor:
-                        WidgetStateProperty.all<Color>(const Color(0xFFFFB500)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white10,
+                        foregroundColor: const Color(0xFFFFB500),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(35),
+                          side: const BorderSide(color: Color(0xFFFFB500)),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 40,
+                          vertical: 16,
+                        ),
+                        elevation: 2,
                       ),
-                      child: const Text('Próximo'),
+                      child: const Text(
+                        'Próximo',
+                        style: TextStyle(fontSize: 18),
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      filled: true,
+      fillColor: Colors.white24,
+      labelText: label,
+      labelStyle: const TextStyle(
+        color: Colors.white,
+        fontSize: 16, // Tamanho padrão do label
+      ),
+      floatingLabelStyle: const TextStyle(
+        color: Color(0xFFFFB500),
+        fontSize: 18, // Quando clica no campo
+        fontWeight: FontWeight.w500,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
       ),
     );
   }

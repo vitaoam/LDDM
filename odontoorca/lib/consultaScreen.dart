@@ -11,56 +11,91 @@ class ConsultaScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Consultas"),
-        backgroundColor: const Color(0xFFFFB500),
-        centerTitle: true,
-      ),
+      backgroundColor: const Color(0xFF1C1C1C),
       body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildAnimatedButton(
-            context,
-            label: "Realizar Consulta",
-            destination: RealizarConsultaScreen(dentistaId: user.id!),
+          const SizedBox(height: 50),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Row(
+              children: const [
+                Icon(Icons.calendar_today, color: Color(0xFFFFB500)),
+                SizedBox(width: 10),
+                Text(
+                  "Consultas",
+                  style: TextStyle(
+                    fontSize: 22,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
           ),
-          _buildAnimatedButton(
-            context,
-            label: "Consultar Cliente",
-            destination: ConsultarClienteScreen(dentistaId: user.id!),
+          const SizedBox(height: 10),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.0),
+            child: Text(
+              "Escolha abaixo uma ação para realizar ou consultar as informações do seu cliente.",
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+          ),
+          const SizedBox(height: 80),
+          Center(
+            child: Column(
+              children: [
+                _buildAnimatedButton(
+                  context,
+                  label: "Realizar Consulta",
+                  destination: RealizarConsultaScreen(dentistaId: user.id!),
+                ),
+                _buildAnimatedButton(
+                  context,
+                  label: "Consultar Cliente",
+                  destination: ConsultarClienteScreen(dentistaId: user.id!),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAnimatedButton(BuildContext context, {required String label, required Widget destination}) {
+  static Widget _buildAnimatedButton(
+    BuildContext context, {
+    required String label,
+    required Widget destination,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Center(
-        child: SizedBox(
-          width: 240, // largura aumentada
-          height: 45,
-          child: OpenContainer(
-            closedElevation: 0,
-            closedColor: const Color(0xFFFFB500),
-            closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            closedBuilder: (context, action) => ElevatedButton(
-              onPressed: action,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFB500),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              ),
-              child: Text(
-                label,
-                style: const TextStyle(fontSize: 18), // fonte menor
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-            ),
-            openBuilder: (context, _) => destination,
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: SizedBox(
+        width: 240,
+        height: 48,
+        child: OpenContainer(
+          closedElevation: 0,
+          closedColor: const Color(0xFFFFB500),
+          closedShape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
+          closedBuilder:
+              (context, action) => ElevatedButton(
+                onPressed: action,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFB500),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: Text(
+                  label,
+                  style: const TextStyle(fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+          openBuilder: (context, _) => destination,
         ),
       ),
     );

@@ -11,56 +11,91 @@ class CartScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Orçamentos"),
-        backgroundColor: const Color(0xFFFFB500),
-        centerTitle: true,
-      ),
+      backgroundColor: const Color(0xFF1C1C1C),
       body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildAnimatedButton(
-            context,
-            label: "Criar Orçamento",
-            destination: CreateBudgetScreen(dentistaId: user.id!),
+          const SizedBox(height: 50),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Row(
+              children: const [
+                Icon(Icons.attach_money, color: Color(0xFFFFB500)),
+                SizedBox(width: 10),
+                Text(
+                  "Orçamentos",
+                  style: TextStyle(
+                    fontSize: 22,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
           ),
-          _buildAnimatedButton(
-            context,
-            label: "Editar Orçamento",
-            destination: EditBudgetScreen(dentistaId: user.id!),
+          const SizedBox(height: 10),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.0),
+            child: Text(
+              "Gerencie seus orçamentos de forma rápida e fácil.",
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+          ),
+          const SizedBox(height: 80),
+          Center(
+            child: Column(
+              children: [
+                _buildAnimatedButton(
+                  context,
+                  label: "Criar Orçamento",
+                  destination: CreateBudgetScreen(dentistaId: user.id!),
+                ),
+                _buildAnimatedButton(
+                  context,
+                  label: "Editar Orçamento",
+                  destination: EditBudgetScreen(dentistaId: user.id!),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAnimatedButton(BuildContext context, {required String label, required Widget destination}) {
+  static Widget _buildAnimatedButton(
+    BuildContext context, {
+    required String label,
+    required Widget destination,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Center(
-        child: SizedBox(
-          width: 240,
-          height: 45,
-          child: OpenContainer(
-            closedElevation: 0,
-            closedColor: const Color(0xFFFFB500),
-            closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            closedBuilder: (context, action) => ElevatedButton(
-              onPressed: action,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFB500),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              ),
-              child: Text(
-                label,
-                style: const TextStyle(fontSize: 18),
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-            ),
-            openBuilder: (context, _) => destination,
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: SizedBox(
+        width: 240,
+        height: 48,
+        child: OpenContainer(
+          closedElevation: 0,
+          closedColor: const Color(0xFFFFB500),
+          closedShape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
+          closedBuilder:
+              (context, action) => ElevatedButton(
+                onPressed: action,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFB500),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: Text(
+                  label,
+                  style: const TextStyle(fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+          openBuilder: (context, _) => destination,
         ),
       ),
     );
