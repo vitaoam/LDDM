@@ -4,7 +4,6 @@ import 'user.dart';
 import 'cliente.dart';
 import 'orcamento.dart';
 
-
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
@@ -79,6 +78,15 @@ class DatabaseHelper {
       return User.fromMap(maps.first);
     }
     return null;
+  }
+
+  Future<User> getUserById(int id) async{
+    final db = await instance.database;
+    final maps = await db.query('users', where: 'id = ?', whereArgs: [id]);
+    if(maps.isNotEmpty){
+      return User.fromMap(maps.first);
+    }
+    throw Exception('Usuario não encontrado');
   }
 
   Future<int> updateUser(User user) async {
