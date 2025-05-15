@@ -5,7 +5,7 @@ import 'cliente.dart';
 import 'orcamento.dart';
 
 class DatabaseHelper {
-  static final DatabaseHelper instance = DatabaseHelper._init(); //Criar o banco de dados
+  static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
 
   DatabaseHelper._init();
@@ -16,11 +16,11 @@ class DatabaseHelper {
     return _database!;
   }
 
-  Future<Database> _initDB(String filePath) async {
+  Future<Database> _initDB(String filePath) async {  //Criar o banco de dados
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath); //Criação do arquivo
 
-    return await openDatabase(
+    return await openDatabase( //Abrir
       path,
       version: 1,
       onCreate: _createDB,
