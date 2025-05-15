@@ -5,11 +5,11 @@ import 'cliente.dart';
 import 'orcamento.dart';
 
 class DatabaseHelper {
-  static final DatabaseHelper instance = DatabaseHelper._init();
+  static final DatabaseHelper instance = DatabaseHelper._init(); //Criar o banco de dados
   static Database? _database;
 
   DatabaseHelper._init();
-
+  
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDB('users.db');
@@ -18,7 +18,7 @@ class DatabaseHelper {
 
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, filePath);
+    final path = join(dbPath, filePath); //Criação do arquivo
 
     return await openDatabase(
       path,
@@ -26,7 +26,7 @@ class DatabaseHelper {
       onCreate: _createDB,
     );
   }
-
+  //Criar as tabelas sql
   Future _createDB(Database db, int version) async {
     await db.execute('''
       CREATE TABLE users(
@@ -62,12 +62,12 @@ class DatabaseHelper {
   }
 
   // Usuário
-  Future<int> insertUser(User user) async {
+  Future<int> insertUser(User user) async { //Inserir
     final db = await instance.database;
     return await db.insert('users', user.toMap());
   }
 
-  Future<User?> getUserByEmailAndPassword(String email, String senha) async {
+  Future<User?> getUserByEmailAndPassword(String email, String senha) async { //Ler
     final db = await instance.database;
     final maps = await db.query(
       'users',
@@ -89,7 +89,7 @@ class DatabaseHelper {
     throw Exception('Usuario não encontrado');
   }
 
-  Future<int> updateUser(User user) async {
+  Future<int> updateUser(User user) async { //Upgrade
     final db = await instance.database;
     return await db.update(
       'users',
@@ -99,7 +99,7 @@ class DatabaseHelper {
     );
   }
 
-  Future<int> deleteUser(int id) async {
+  Future<int> deleteUser(int id) async { //Deletar
     final db = await instance.database;
     return await db.delete(
       'users',
@@ -109,12 +109,12 @@ class DatabaseHelper {
   }
 
   // Cliente
-  Future<int> insertCliente(Cliente cliente) async {
+  Future<int> insertCliente(Cliente cliente) async { 
     final db = await instance.database;
     return await db.insert('clientes', cliente.toMap());
   }
 
-  Future<List<Cliente>> getClientesByDentista(int dentistaId) async {
+  Future<List<Cliente>> getClientesByDentista(int dentistaId) async { //Ler
     final db = await instance.database;
     final maps = await db.query(
       'clientes',
