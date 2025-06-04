@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'database_helper.dart';
 import 'user.dart';
 import 'cliente.dart';
 import 'orcamento.dart';
+import 'firebase_service.dart';
 
 // TELAS AUXILIARES
 
 class CreateBudgetScreen extends StatefulWidget {
-  final int dentistaId;
+  final String dentistaId;
   const CreateBudgetScreen({super.key, required this.dentistaId});
 
   @override
@@ -18,7 +18,6 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _descricaoController = TextEditingController();
   final TextEditingController _valorController = TextEditingController();
-
   void _salvarOrcamento() async {
     String nome = _nomeController.text.trim();
     String descricao = _descricaoController.text.trim();
@@ -37,9 +36,10 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
       valor: valor,
       dentistaId: widget.dentistaId,
     );
-    await DatabaseHelper.instance.insertOrcamento(novoOrcamento);
+    await FirebaseService.addOrcamento(novoOrcamento);
     Navigator.pop(context);
   }
+
 
   @override
   @override
@@ -209,157 +209,79 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
   }
 }
 
-class EditBudgetScreen extends StatefulWidget {
-  final int dentistaId;
+class EditBudgetScreen extends StatelessWidget {
+  final String dentistaId; // UID do dentista logado
   const EditBudgetScreen({super.key, required this.dentistaId});
 
   @override
-  State<EditBudgetScreen> createState() => _EditBudgetScreenState();
-}
-
-class _EditBudgetScreenState extends State<EditBudgetScreen> {
-  late Future<List<Orcamento>> _orcamentosFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _orcamentosFuture = DatabaseHelper.instance.getOrcamentosByDentista(
-      widget.dentistaId,
-    );
-  }
-
-  void _refresh() {
-    setState(() {
-      _orcamentosFuture = DatabaseHelper.instance.getOrcamentosByDentista(
-        widget.dentistaId,
-      );
-    });
-  }
-
-  @override
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF1C1C1C),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Cabeçalho customizado
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
+      appBar: AppBar(
+        title: const Text("Editar Orçamentos"),
+        backgroundColor: const Color(0xFFFFB500),
+        centerTitle: true,
+      ),
+      body: StreamBuilder<List<Orcamento>>(
+        stream: FirebaseService.getOrcamentosByDentista(dentistaId),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text("Nenhum orçamento cadastrado."));
+          }
+          final orcamentos = snapshot.data!;
+          return ListView.builder(
+            itemCount: orcamentos.length,
+            itemBuilder: (context, index) {
+              final o = orcamentos[index];
+              return Card(
+                color: Colors.grey[850],
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: ListTile(
+                  title: Text(o.nome, style: const TextStyle(color: Colors.white)),
+                  subtitle: Text(
+                    "R\$ ${o.valor.toStringAsFixed(2)}\n${o.descricao}",
+                    style: const TextStyle(color: Colors.white70),
                   ),
-                  const Spacer(),
-                  const Text(
-                    "Editar Orçamentos",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(flex: 2),
-                ],
-              ),
-            ),
-
-            // Lista de orçamentos
-            Expanded(
-              child: FutureBuilder<List<Orcamento>>(
-                future: _orcamentosFuture,
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  final orcamentos = snapshot.data!;
-                  if (orcamentos.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        "Nenhum orçamento cadastrado.",
-                        style: TextStyle(color: Colors.white70),
+                  isThreeLine: true,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.white),
+                        onPressed: () async {
+                          final resultado = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EditarOrcamentoScreen(orcamento: o),
+                            ),
+                          );
+                          // O StreamBuilder já atualiza sozinho após edição
+                        },
                       ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    itemCount: orcamentos.length,
-                    itemBuilder: (context, index) {
-                      final o = orcamentos[index];
-                      return Card(
-                        color: Colors.grey[850],
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: ListTile(
-                          title: Text(
-                            o.nome,
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                          subtitle: Text(
-                            "R\$ ${o.valor.toStringAsFixed(2)}\n${o.descricao}",
-                            style: const TextStyle(color: Colors.white70),
-                          ),
-                          isThreeLine: true,
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.edit,
-                                  color: Colors.white,
-                                ),
-                                onPressed: () async {
-                                  final resultado = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (_) => EditarOrcamentoScreen(
-                                            orcamento: o,
-                                          ),
-                                    ),
-                                  );
-                                  if (resultado == true) _refresh();
-                                },
-                              ),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.delete,
-                                  color: Colors.redAccent,
-                                ),
-                                onPressed: () async {
-                                  await DatabaseHelper.instance.deleteOrcamento(
-                                    o.id!,
-                                  );
-                                  _refresh();
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.redAccent),
+                        onPressed: () async {
+                          await FirebaseService.deleteOrcamento(o.id!);
+                          // O StreamBuilder já atualiza sozinho após exclusão
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
 }
 
 class RealizarConsultaScreen extends StatefulWidget {
-  final int dentistaId;
+  final String dentistaId; // UID do dentista logado
   const RealizarConsultaScreen({super.key, required this.dentistaId});
 
   @override
@@ -367,217 +289,78 @@ class RealizarConsultaScreen extends StatefulWidget {
 }
 
 class _RealizarConsultaScreenState extends State<RealizarConsultaScreen> {
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _telefoneController = TextEditingController();
 
   void _iniciarConsulta() async {
-    final nomeCliente = _nomeController.text.trim();
-    final telefoneCliente = _telefoneController.text.trim();
-
-    if (nomeCliente.isEmpty || telefoneCliente.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Por favor, preencha todos os campos.")),
+    if (_formKey.currentState!.validate()) {
+      final cliente = Cliente(
+        nome: _nomeController.text.trim(),
+        telefone: _telefoneController.text.trim(),
+        dentistaId: widget.dentistaId,
       );
-      return;
+      await FirebaseService.addCliente(cliente);
+      Navigator.pop(context); // Ou navegue para a próxima tela da consulta
     }
-
-    // Adiciona o cliente à lista global
-    final novoCliente = Cliente(
-      nome: nomeCliente,
-      telefone: telefoneCliente,
-      dentistaId: widget.dentistaId,
-    );
-    final idCliente = await DatabaseHelper.instance.insertCliente(novoCliente);
-
-    // Recupere o cliente recém-criado do banco (com id correto)
-    final clienteSalvo = Cliente(
-      id: idCliente,
-      nome: nomeCliente,
-      telefone: telefoneCliente,
-      dentistaId: widget.dentistaId,
-    );
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => TelaConsultaDetalhes(cliente: clienteSalvo),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    const backgroundColor = Color(0xFF1C1C1C);
-    const amareloPrincipal = Color(0xFFF6A800);
-    const fieldColor = Color(0xFF2E2E2E);
-
     return Scaffold(
-      backgroundColor: backgroundColor,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Cabeçalho (mantido exatamente igual)
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20.0,
-                vertical: 12.0,
+      appBar: AppBar(
+        title: const Text("Cadastrar Cliente"),
+        backgroundColor: const Color(0xFFFFB500),
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              TextFormField(
+                controller: _nomeController,
+                decoration: const InputDecoration(
+                  labelText: "Nome do Cliente",
+                  filled: true,
+                  fillColor: Colors.white24,
+                  labelStyle: TextStyle(color: Colors.white),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) return "Preencha este campo";
+                  return null;
+                },
               ),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const Spacer(),
-                  const Text(
-                    "Realizar Consulta",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(flex: 2),
-                ],
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _telefoneController,
+                decoration: const InputDecoration(
+                  labelText: "Telefone",
+                  filled: true,
+                  fillColor: Colors.white24,
+                  labelStyle: TextStyle(color: Colors.white),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) return "Preencha este campo";
+                  return null;
+                },
               ),
-            ),
-            const SizedBox(height: 24),
-
-            // Formulário (estrutura mantida, estilização refinada)
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Campo Nome
-                    Text(
-                      "Nome do Cliente",
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: fieldColor,
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 6,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: TextField(
-                        controller: _nomeController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 16,
-                          ),
-                          border: InputBorder.none,
-                          hintText: "Digite o nome do cliente",
-                          hintStyle: TextStyle(
-                            color: Colors.white.withOpacity(0.5),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                            borderSide: BorderSide(
-                              color: amareloPrincipal.withOpacity(0.8),
-                              width: 1.5,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Campo Telefone
-                    Text(
-                      "Telefone do Cliente",
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: fieldColor,
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 6,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: TextField(
-                        controller: _telefoneController,
-                        keyboardType: TextInputType.phone,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 16,
-                          ),
-                          border: InputBorder.none,
-                          hintText: "Digite o telefone do cliente",
-                          hintStyle: TextStyle(
-                            color: Colors.white.withOpacity(0.5),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                            borderSide: BorderSide(
-                              color: amareloPrincipal.withOpacity(0.8),
-                              width: 1.5,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 36),
-
-                    // Botão (mantida a lógica, estilização refinada)
-                    Center(
-                      child: ElevatedButton(
-                        onPressed: _iniciarConsulta,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: amareloPrincipal,
-                          foregroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 40,
-                            vertical: 16,
-                          ),
-                          elevation: 4,
-                          shadowColor: amareloPrincipal.withOpacity(0.3),
-                        ),
-                        child: const Text(
-                          "Iniciar Consulta",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _iniciarConsulta,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFB500),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  ),
+                  child: const Text("Iniciar Consulta", style: TextStyle(fontSize: 18, color: Colors.white)),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -585,116 +368,52 @@ class _RealizarConsultaScreenState extends State<RealizarConsultaScreen> {
 }
 
 class ConsultarClienteScreen extends StatelessWidget {
-  final int dentistaId;
+  final String dentistaId; // Agora é String, o UID do Firebase Auth
   const ConsultarClienteScreen({super.key, required this.dentistaId});
 
   @override
-  @override
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF1C1C1C),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Cabeçalho com botão de voltar e título
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8.0,
-                vertical: 8.0,
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const Spacer(),
-                  const Text(
-                    "Consultar Cliente",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(flex: 2),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Lista de clientes
-            Expanded(
-              child: FutureBuilder<List<Cliente>>(
-                future: DatabaseHelper.instance.getClientesByDentista(
-                  dentistaId,
-                ),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        "Nenhum cliente cadastrado.",
-                        style: TextStyle(color: Colors.white70, fontSize: 16),
+      appBar: AppBar(
+        title: const Text("Consultar Cliente"),
+        backgroundColor: const Color(0xFFFFB500),
+        centerTitle: true,
+      ),
+      body: StreamBuilder<List<Cliente>>(
+        stream: FirebaseService.getClientesByDentista(dentistaId),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text("Nenhum cliente cadastrado."));
+          }
+          final clientes = snapshot.data!;
+          return ListView.builder(
+            itemCount: clientes.length,
+            itemBuilder: (context, index) {
+              final cliente = clientes[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  title: Text(cliente.nome),
+                  subtitle: Text(cliente.telefone),
+                  trailing: const Icon(Icons.arrow_forward),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) =>
+                            DetalhesClientePage(cliente: cliente),
                       ),
                     );
-                  }
-
-                  final clientes = snapshot.data!;
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.only(top: 10),
-                    itemCount: clientes.length,
-                    itemBuilder: (context, index) {
-                      final cliente = clientes[index];
-                      return Card(
-                        color: Colors.grey[800],
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        child: ListTile(
-                          title: Text(
-                            cliente.nome,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          subtitle: Text(
-                            cliente.telefone,
-                            style: const TextStyle(color: Colors.white70),
-                          ),
-                          trailing: const Icon(
-                            Icons.arrow_forward,
-                            color: Colors.white,
-                          ),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) =>
-                                        DetalhesClientePage(cliente: cliente),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+                  },
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
@@ -890,7 +609,6 @@ class _TelaConsultaDetalhesState extends State<TelaConsultaDetalhes> {
 
 class EditarOrcamentoScreen extends StatefulWidget {
   final Orcamento orcamento;
-
   const EditarOrcamentoScreen({super.key, required this.orcamento});
 
   @override
@@ -906,12 +624,8 @@ class _EditarOrcamentoScreenState extends State<EditarOrcamentoScreen> {
   void initState() {
     super.initState();
     _nomeController = TextEditingController(text: widget.orcamento.nome);
-    _descricaoController = TextEditingController(
-      text: widget.orcamento.descricao,
-    );
-    _valorController = TextEditingController(
-      text: widget.orcamento.valor.toString(),
-    );
+    _descricaoController = TextEditingController(text: widget.orcamento.descricao);
+    _valorController = TextEditingController(text: widget.orcamento.valor.toString());
   }
 
   void _salvarEdicao() async {
@@ -920,9 +634,9 @@ class _EditarOrcamentoScreenState extends State<EditarOrcamentoScreen> {
     final valor = double.tryParse(_valorController.text);
 
     if (nome.isEmpty || descricao.isEmpty || valor == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Campos inválidos")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Campos inválidos")),
+      );
       return;
     }
 
@@ -934,75 +648,45 @@ class _EditarOrcamentoScreenState extends State<EditarOrcamentoScreen> {
       dentistaId: widget.orcamento.dentistaId,
     );
 
-    await DatabaseHelper.instance.updateOrcamento(orcamentoEditado);
+    await FirebaseService.updateOrcamento(orcamentoEditado);
 
     Navigator.pop(context, true);
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF1C1C1C),
-      body: SafeArea(
+      appBar: AppBar(
+        title: const Text("Editar Orçamento"),
+        backgroundColor: const Color(0xFFFFB500),
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-            // Cabeçalho customizado
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
+            _buildTextField(_nomeController, "Nome"),
+            const SizedBox(height: 16),
+            _buildTextField(_descricaoController, "Descrição"),
+            const SizedBox(height: 16),
+            _buildTextField(_valorController, "Valor (R\$)", isNumber: true),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _salvarEdicao,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFB500),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                ),
+                child: const Text(
+                  "Salvar Alterações",
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
                   ),
-                  const Spacer(),
-                  const Text(
-                    "Editar Orçamento",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(flex: 2),
-                ],
-              ),
-            ),
-
-            // Formulário de edição
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                children: [
-                  _buildTextField(_nomeController, "Nome"),
-                  const SizedBox(height: 16),
-                  _buildTextField(_descricaoController, "Descrição"),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    _valorController,
-                    "Valor (R\$)",
-                    isNumber: true,
-                  ),
-                  const SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: _salvarEdicao,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFB500),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 25,
-                        vertical: 11,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    child: const Text(
-                      "Salvar Alterações",
-                      style: TextStyle(fontSize: 18, color: Colors.black),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ],
@@ -1011,11 +695,7 @@ class _EditarOrcamentoScreenState extends State<EditarOrcamentoScreen> {
     );
   }
 
-  Widget _buildTextField(
-    TextEditingController controller,
-    String hintText, {
-    bool isNumber = false,
-  }) {
+  Widget _buildTextField(TextEditingController controller, String hintText, {bool isNumber = false}) {
     return TextField(
       controller: controller,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
@@ -1025,10 +705,7 @@ class _EditarOrcamentoScreenState extends State<EditarOrcamentoScreen> {
         hintStyle: const TextStyle(color: Colors.white70),
         filled: true,
         fillColor: Colors.grey[700],
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide.none,
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
       ),
     );
   }
@@ -1281,14 +958,12 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
+  final _formKey = GlobalKey<FormState>();
   late TextEditingController _nomeController;
   late TextEditingController _emailController;
   late TextEditingController _telefoneController;
   late TextEditingController _cpfController;
   late TextEditingController _croController;
-  late TextEditingController _senhaController;
-
-  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -1298,18 +973,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _telefoneController = TextEditingController(text: widget.user.telefone);
     _cpfController = TextEditingController(text: widget.user.cpf);
     _croController = TextEditingController(text: widget.user.cro);
-    _senhaController = TextEditingController(text: widget.user.senha);
-  }
-
-  @override
-  void dispose() {
-    _nomeController.dispose();
-    _emailController.dispose();
-    _telefoneController.dispose();
-    _cpfController.dispose();
-    _croController.dispose();
-    _senhaController.dispose();
-    super.dispose();
   }
 
   void _salvarEdicao() async {
@@ -1321,9 +984,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         telefone: _telefoneController.text.trim(),
         cpf: _cpfController.text.trim(),
         cro: _croController.text.trim(),
-        senha: _senhaController.text.trim(),
       );
-      await DatabaseHelper.instance.updateUser(userEditado);
+      await FirebaseService.updateUser(userEditado);
       Navigator.pop(context, userEditado);
     }
   }
@@ -1331,239 +993,116 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[900], // Fundo escuro
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20.0,
-                vertical: 12.0,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.grey[850],
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.5),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+      appBar: AppBar(
+        title: const Text("Editar Perfil"),
+        backgroundColor: const Color(0xFFFFB500),
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            children: [
+              _buildTextField(_nomeController, "Nome", validator: (value) {
+                if (value == null || value.trim().isEmpty) return "Preencha este campo";
+                return null;
+              }),
+              const SizedBox(height: 12),
+              _buildTextField(_emailController, "Email", email: true, validator: (value) {
+                if (value == null || value.trim().isEmpty) return "Preencha este campo";
+                if (!value.contains('@')) return "Email inválido";
+                return null;
+              }),
+              const SizedBox(height: 12),
+              _buildTextField(_telefoneController, "Telefone", validator: (value) {
+                if (value == null || value.trim().isEmpty) return "Preencha este campo";
+                return null;
+              }),
+              const SizedBox(height: 12),
+              _buildTextField(_cpfController, "CPF", validator: (value) {
+                if (value == null || value.trim().isEmpty) return "Preencha este campo";
+                if (!validarCPF(value)) return "CPF inválido";
+                return null;
+              }),
+              const SizedBox(height: 12),
+              _buildTextField(_croController, "CRO", validator: (value) {
+                if (value == null || value.trim().isEmpty) return "Preencha este campo";
+                return null;
+              }),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _salvarEdicao,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFB500),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                   ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const Spacer(),
-                  const Text(
-                    "Editar Perfil",
+                  child: const Text(
+                    "Salvar Alterações",
                     style: TextStyle(
+                      fontSize: 18,
                       color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
                     ),
-                  ),
-                  const Spacer(flex: 2),
-                ],
-              ),
-            ),
-
-            // Formulário
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      // Campo Nome
-                      _buildTextField(
-                        _nomeController,
-                        "Nome",
-                        icon: Icons.person_outline,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Preencha este campo";
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Campo Email
-                      _buildTextField(
-                        _emailController,
-                        "Email",
-                        icon: Icons.email_outlined,
-                        email: true,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Preencha este campo";
-                          }
-                          if (!value.contains('@')) return "Email inválido";
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Campo Telefone
-                      _buildTextField(
-                        _telefoneController,
-                        "Telefone",
-                        icon: Icons.phone_outlined,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Preencha este campo";
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Campo CPF
-                      _buildTextField(
-                        _cpfController,
-                        "CPF",
-                        icon: Icons.badge_outlined,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Preencha este campo";
-                          }
-                          if (!validarCPF(value)) return "CPF inválido";
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Campo CRO
-                      _buildTextField(
-                        _croController,
-                        "CRO",
-                        icon: Icons.medical_services_outlined,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Preencha este campo";
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Campo Senha
-                      _buildTextField(
-                        _senhaController,
-                        "Senha",
-                        icon: Icons.lock_outline,
-                        obscure: true,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Preencha este campo";
-                          }
-                          if (value.length < 8) {
-                            return "A senha deve ter no mínimo 8 caracteres";
-                          }
-                          return null;
-                        },
-                      ),
-
-                      const SizedBox(height: 32),
-
-                      // Botão de Salvar
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _salvarEdicao,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFFB500),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            elevation: 4,
-                          ),
-                          child: const Text(
-                            "Salvar Alterações",
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.black,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // Função auxiliar para construir os campos de texto (atualizada com seu estilo)
   Widget _buildTextField(
-    TextEditingController controller,
-    String label, {
-    bool obscure = false,
-    bool email = false,
-    IconData? icon,
-    String? Function(String?)? validator,
-  }) {
+      TextEditingController controller,
+      String label, {
+        bool email = false,
+        bool obscure = false,
+        String? Function(String?)? validator,
+      }) {
     return TextFormField(
       controller: controller,
-      obscureText: obscure,
       keyboardType: email ? TextInputType.emailAddress : TextInputType.text,
+      obscureText: obscure,
       style: const TextStyle(color: Colors.white),
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.white70),
-        prefixIcon: icon != null ? Icon(icon, color: Colors.white70) : null,
         filled: true,
         fillColor: Colors.grey[800],
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 16,
-          horizontal: 20,
-        ),
-        errorStyle: TextStyle(color: Colors.amber[300]),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
       ),
     );
   }
+}
 
-  bool validarCPF(String cpf) {
-    cpf = cpf.replaceAll(RegExp(r'[^0-9]'), '');
+bool validarCPF(String cpf) {
+  cpf = cpf.replaceAll(RegExp(r'[^0-9]'), '');
 
-    if (cpf.length != 11) return false;
-    if (RegExp(r'^(\d)\1*$').hasMatch(cpf)) return false;
+  if (cpf.length != 11) return false;
+  if (RegExp(r'^(\d)\1*$').hasMatch(cpf)) return false;
 
-    // Validação dos dígitos verificadores
-    List<int> numbers = cpf.split('').map(int.parse).toList();
+  List<int> numbers = cpf.split('').map(int.parse).toList();
 
-    int soma = 0;
-    for (int i = 0; i < 9; i++) {
-      soma += numbers[i] * (10 - i);
-    }
-    int primeiroDigito = 11 - (soma % 11);
-    if (primeiroDigito >= 10) primeiroDigito = 0;
-    if (numbers[9] != primeiroDigito) return false;
-
-    soma = 0;
-    for (int i = 0; i < 10; i++) {
-      soma += numbers[i] * (11 - i);
-    }
-    int segundoDigito = 11 - (soma % 11);
-    if (segundoDigito >= 10) segundoDigito = 0;
-    if (numbers[10] != segundoDigito) return false;
-
-    return true;
+  int soma = 0;
+  for (int i = 0; i < 9; i++) {
+    soma += numbers[i] * (10 - i);
   }
+  int primeiroDigito = 11 - (soma % 11);
+  if (primeiroDigito >= 10) primeiroDigito = 0;
+  if (numbers[9] != primeiroDigito) return false;
+
+  soma = 0;
+  for (int i = 0; i < 10; i++) {
+    soma += numbers[i] * (11 - i);
+  }
+  int segundoDigito = 11 - (soma % 11);
+  if (segundoDigito >= 10) segundoDigito = 0;
+  if (numbers[10] != segundoDigito) return false;
+
+  return true;
 }

@@ -1,9 +1,9 @@
 class Orcamento {
-  final int? id;
+  final String? id;
   final String nome;
   final String descricao;
   final double valor;
-  final int dentistaId;
+  final String dentistaId;
 
   Orcamento({
     this.id,
@@ -15,7 +15,6 @@ class Orcamento {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
       'nome': nome,
       'descricao': descricao,
       'valor': valor,
@@ -23,12 +22,12 @@ class Orcamento {
     };
   }
 
-  factory Orcamento.fromMap(Map<String, dynamic> map) {
+  factory Orcamento.fromMap(Map<String, dynamic> map, String id) {
     return Orcamento(
-      id: map['id'],
+      id: id,
       nome: map['nome'],
       descricao: map['descricao'],
-      valor: map['valor'] is int ? (map['valor'] as int).toDouble() : map['valor'],
+      valor: (map['valor'] as num).toDouble(),
       dentistaId: map['dentista_id'],
     );
   }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'database_helper.dart';
 import 'main.dart';
 import 'homeScreen.dart';
+import 'firebase_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -85,21 +85,21 @@ class LoginScreenState extends State<LoginScreen> {
               Center(
                 child: ElevatedButton(
                   onPressed: () async {
-                    final user =
-                        await DatabaseHelper.instance.getUserByEmailAndPassword(
+                    final fbUser = await FirebaseService.signIn(
                       emailController.text,
                       passwordController.text,
                     );
-                    if (user != null) {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => HomeScreen(user: user)),
-                      );
+                    if (fbUser != null) {
+                      final user = await FirebaseService.getUserById(fbUser.uid);
+                      if (user != null) {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => HomeScreen(user: user)),
+                        );
+                      }
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text("Email ou senha inválidos")),
+                        const SnackBar(content: Text("Email ou senha inválidos")),
                       );
                     }
                   },

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "970550983502",
+    "project_id": "odontoorca",
+    "storage_bucket": "odontoorca.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:970550983502:android:b89c24b6e45f043936fc1f",
+        "android_client_info": {
+          "package_name": "com.example.odontoorca"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBj0XL67lB-3WQkye78201tZ9fenWTFYPc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

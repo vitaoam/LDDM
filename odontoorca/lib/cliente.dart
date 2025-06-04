@@ -1,8 +1,8 @@
 class Cliente {
-  final int? id;
+  final String? id;
   final String nome;
   final String telefone;
-  final int dentistaId;
+  final String dentistaId;
 
   Cliente({
     this.id,
@@ -13,16 +13,15 @@ class Cliente {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
       'nome': nome,
       'telefone': telefone,
       'dentista_id': dentistaId,
     };
   }
 
-  factory Cliente.fromMap(Map<String, dynamic> map) {
+  factory Cliente.fromMap(Map<String, dynamic> map, String id) {
     return Cliente(
-      id: map['id'],
+      id: id,
       nome: map['nome'],
       telefone: map['telefone'],
       dentistaId: map['dentista_id'],

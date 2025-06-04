@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'database_helper.dart';
 import 'user.dart';
 import 'main.dart';
 import 'loginScreen.dart';
 import 'telasAuxiliares.dart';
+import 'firebase_service.dart';
 
 class CadastroScreen extends StatefulWidget {
   const CadastroScreen({Key? key}) : super(key: key);
@@ -142,16 +142,10 @@ class CadastroScreenState extends State<CadastroScreen> {
                             telefone: phoneController.text,
                             cpf: cpfController.text,
                             cro: croController.text,
-                            senha: passwordController.text,
                           );
-                          await DatabaseHelper.instance.insertUser(user);
+                          await FirebaseService.signUp(user, passwordController.text);
                           setState(() => preencheu = true);
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LoginScreen(),
-                            ),
-                          );
+                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginScreen()));
                         } else {
                           setState(() => preencheu = false);
                           showDialog(
