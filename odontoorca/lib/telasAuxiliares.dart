@@ -302,12 +302,21 @@ class _RealizarConsultaScreenState extends State<RealizarConsultaScreen> {
         telefone: _telefoneController.text.trim(),
         dentistaId: widget.dentistaId,
       );
-      await FirebaseService.addCliente(cliente);
+      // Salva e obtém o ID gerado pelo Firestore
+      final id = await FirebaseService.addCliente(cliente);
+      // Cria um novo cliente já com o ID
+      final clienteComId = Cliente(
+        id: id,
+        nome: cliente.nome,
+        telefone: cliente.telefone,
+        dentistaId: cliente.dentistaId,
+      );
       Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => TelaConsultaDetalhes(cliente: cliente),
-          ),
-      ); // Ou navegue para a próxima tela da consulta
+        context,
+        MaterialPageRoute(
+          builder: (_) => TelaConsultaDetalhes(cliente: clienteComId),
+        ),
+      );
     }
   }
 
@@ -437,6 +446,8 @@ class _TelaConsultaDetalhesState extends State<TelaConsultaDetalhes> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
   String _textoTranscrito = "";
+  String _denteExtraido = '';
+  String _tratamentoExtraido = '';
 
   @override
   void initState() {
@@ -455,6 +466,9 @@ class _TelaConsultaDetalhesState extends State<TelaConsultaDetalhes> {
         onResult: (val) {
           setState(() {
             _textoTranscrito = val.recognizedWords;
+            final dados = extrairOrcamento(_textoTranscrito);
+            _denteExtraido = dados['dente'] ?? '';
+            _tratamentoExtraido = dados['tratamento'] ?? '';
           });
         },
         localeId: 'pt_BR',
@@ -467,6 +481,35 @@ class _TelaConsultaDetalhesState extends State<TelaConsultaDetalhes> {
   void _stopListening() {
     _speech.stop();
     setState(() => _isListening = false);
+  }
+
+  void _irParaRelatorio() async {
+    if (_denteExtraido.isEmpty && _tratamentoExtraido.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Fale o número do dente e o tratamento antes de prosseguir!")),
+      );
+      return;
+    }
+
+    await FirebaseService.updateClienteOrcamento(
+      id: widget.cliente.id!,
+      dente: _denteExtraido,
+      tratamento: _tratamentoExtraido,
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RelatorioConsultaPage(
+          cliente: widget.cliente.copyWith(
+            dente: _denteExtraido,
+            tratamento: _tratamentoExtraido,
+          ),
+          dente: _denteExtraido,
+          tratamento: _tratamentoExtraido,
+        ),
+      ),
+    );
   }
 
   @override
@@ -517,9 +560,33 @@ class _TelaConsultaDetalhesState extends State<TelaConsultaDetalhes> {
                 color: Colors.grey[800],
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Text(
-                _textoTranscrito.isEmpty ? "Fale algo para transcrever..." : _textoTranscrito,
-                style: const TextStyle(color: Colors.white, fontSize: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _textoTranscrito.isEmpty
+                        ? "Fale, por exemplo: 'Dente 12 restauração'"
+                        : _textoTranscrito,
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_denteExtraido.isNotEmpty)
+                    Text("Dente: $_denteExtraido", style: const TextStyle(color: Colors.white70)),
+                  if (_tratamentoExtraido.isNotEmpty)
+                    Text("Tratamento: $_tratamentoExtraido", style: const TextStyle(color: Colors.white70)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _irParaRelatorio,
+              icon: const Icon(Icons.arrow_forward),
+              label: const Text("Finalizar e ver consulta"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFB500),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
               ),
             ),
           ],
@@ -635,20 +702,26 @@ class _EditarOrcamentoScreenState extends State<EditarOrcamentoScreen> {
 
 class RelatorioConsultaPage extends StatelessWidget {
   final Cliente cliente;
-  const RelatorioConsultaPage({super.key, required this.cliente});
+  final String dente;
+  final String tratamento;
 
-  @override
+  const RelatorioConsultaPage({
+    super.key,
+    required this.cliente,
+    required this.dente,
+    required this.tratamento,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF1C1C1C),
+      backgroundColor: const Color(0xFF1C1C1C),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Cabeçalho
               Row(
                 children: [
                   IconButton(
@@ -668,8 +741,6 @@ class RelatorioConsultaPage extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 30),
-
-              // Nome do cliente
               Text(
                 cliente.nome,
                 style: const TextStyle(
@@ -679,30 +750,14 @@ class RelatorioConsultaPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-
               const Text(
-                'Problemas identificados:',
+                'Orçamento Identificado:',
                 style: TextStyle(color: Colors.white70, fontSize: 18),
               ),
               const SizedBox(height: 10),
-
-              // Lista de problemas
-              Expanded(
-                child: ListView(
-                  children: [
-                    _buildProblemaDente('Dente 12 - Cárie'),
-                    _buildProblemaDente('Dente 22 - Fratura'),
-                    _buildProblemaDente('Dente 36 - Restauração comprometida'),
-                    _buildProblemaDente(
-                      'Dente 45 - Necessidade de tratamento de canal',
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Botão Confirmar
+              _buildOrcamentoInfo("Dente", dente),
+              _buildOrcamentoInfo("Tratamento", tratamento),
+              const Spacer(),
               Center(
                 child: ElevatedButton(
                   onPressed: () {
@@ -710,13 +765,8 @@ class RelatorioConsultaPage extends StatelessWidget {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFFB500),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 16,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
                   child: const Text(
                     'Confirmar',
@@ -724,6 +774,7 @@ class RelatorioConsultaPage extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -731,7 +782,8 @@ class RelatorioConsultaPage extends StatelessWidget {
     );
   }
 
-  Widget _buildProblemaDente(String texto) {
+  Widget _buildOrcamentoInfo(String label, String value) {
+    if (value.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Container(
@@ -741,7 +793,7 @@ class RelatorioConsultaPage extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
-          texto,
+          "$label: $value",
           style: const TextStyle(color: Colors.white, fontSize: 16),
         ),
       ),
@@ -764,7 +816,6 @@ class DetalhesClientePage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Cabeçalho estilizado
               Row(
                 children: [
                   IconButton(
@@ -788,8 +839,6 @@ class DetalhesClientePage extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 32),
-
-              // Informações do cliente
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Column(
@@ -822,26 +871,50 @@ class DetalhesClientePage extends StatelessWidget {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Orçamento Identificado:',
+                      style: TextStyle(color: Colors.white70, fontSize: 16),
+                    ),
+                    const SizedBox(height: 4),
+                    if ((cliente.dente ?? '').isNotEmpty)
+                      Text("Dente: ${cliente.dente}", style: const TextStyle(color: Colors.white)),
+                    if ((cliente.tratamento ?? '').isNotEmpty)
+                      Text("Tratamento: ${cliente.tratamento}", style: const TextStyle(color: Colors.white)),
                   ],
                 ),
               ),
-
               const Spacer(),
-
-              // Botão estilizado
               Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => RelatorioConsultaPage(cliente: cliente),
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text("Excluir Cliente"),
+                        content: const Text("Tem certeza que deseja excluir este cliente?"),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text("Cancelar"),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text("Excluir", style: TextStyle(color: Colors.red)),
+                          ),
+                        ],
                       ),
                     );
+                    if (confirm == true) {
+                      await FirebaseService.deleteCliente(cliente.id!);
+                      Navigator.pop(context);
+                    }
                   },
+                  icon: const Icon(Icons.delete, color: Colors.white),
+                  label: const Text("Excluir Cliente"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFB500),
-                    foregroundColor: Colors.black,
+                    backgroundColor: Colors.redAccent,
+                    foregroundColor: Colors.white,
                     minimumSize: const Size(220, 50),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 32,
@@ -851,14 +924,6 @@ class DetalhesClientePage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     elevation: 3,
-                  ),
-                  child: const Text(
-                    "Checar Consultas",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                    ),
                   ),
                 ),
               ),
@@ -1000,6 +1065,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
     );
   }
+}
+
+Map<String, String> extrairOrcamento(String texto) {
+  final denteRegex = RegExp(r'dente\s*(\d{1,2})', caseSensitive: false);
+  final tratamentoRegex = RegExp(
+    r'restauração|canal|extração|limpeza|cárie|fratura',
+    caseSensitive: false,
+  );
+
+  final denteMatch = denteRegex.firstMatch(texto);
+  final tratamentoMatch = tratamentoRegex.firstMatch(texto);
+
+  return {
+    'dente': denteMatch != null ? denteMatch.group(1)! : '',
+    'tratamento': tratamentoMatch != null ? tratamentoMatch.group(0)! : '',
+  };
 }
 
 bool validarCPF(String cpf) {

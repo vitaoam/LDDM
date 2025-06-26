@@ -33,8 +33,24 @@ class FirebaseService {
   }
 
   // Clientes
-  static Future<void> addCliente(Cliente cliente) async {
-    await _firestore.collection('clientes').add(cliente.toMap());
+  static Future<String> addCliente(Cliente cliente) async {
+    final doc = await _firestore.collection('clientes').add(cliente.toMap());
+    return doc.id;
+  }
+
+  static Future<void> updateClienteOrcamento({
+    required String id,
+    required String dente,
+    required String tratamento,
+  }) async {
+    await _firestore.collection('clientes').doc(id).update({
+      'dente': dente,
+      'tratamento': tratamento,
+    });
+  }
+
+  static Future<void> deleteCliente(String id) async {
+    await _firestore.collection('clientes').doc(id).delete();
   }
 
   static Stream<List<Cliente>> getClientesByDentista(String dentistaId) {
