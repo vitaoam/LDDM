@@ -40,4 +40,49 @@ class DefaultFirebaseOptions {
     }
   }
 //COLOCAR AQUI AS APIS
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyB99OAo5UDSFbKCNp9eeXhLn1HjOAE-CvA',
+    appId: '1:970550983502:web:be12e8b3f8d75ee036fc1f',
+    messagingSenderId: '970550983502',
+    projectId: 'odontoorca',
+    authDomain: 'odontoorca.firebaseapp.com',
+    storageBucket: 'odontoorca.firebasestorage.app',
+    measurementId: 'G-4EYMR4XPXW',
+  );
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyBj0XL67lB-3WQkye78201tZ9fenWTFYPc',
+    appId: '1:970550983502:android:b89c24b6e45f043936fc1f',
+    messagingSenderId: '970550983502',
+    projectId: 'odontoorca',
+    storageBucket: 'odontoorca.firebasestorage.app',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyCr7tsDLVDVCG5QF36Kc3yyD4ZpukJ6wQU',
+    appId: '1:970550983502:ios:9d254d94a588bc5736fc1f',
+    messagingSenderId: '970550983502',
+    projectId: 'odontoorca',
+    storageBucket: 'odontoorca.firebasestorage.app',
+    iosBundleId: 'com.example.odontoorca',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyCr7tsDLVDVCG5QF36Kc3yyD4ZpukJ6wQU',
+    appId: '1:970550983502:ios:9d254d94a588bc5736fc1f',
+    messagingSenderId: '970550983502',
+    projectId: 'odontoorca',
+    storageBucket: 'odontoorca.firebasestorage.app',
+    iosBundleId: 'com.example.odontoorca',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyB99OAo5UDSFbKCNp9eeXhLn1HjOAE-CvA',
+    appId: '1:970550983502:web:f1769a10bbb172ce36fc1f',
+    messagingSenderId: '970550983502',
+    projectId: 'odontoorca',
+    authDomain: 'odontoorca.firebaseapp.com',
+    storageBucket: 'odontoorca.firebasestorage.app',
+    measurementId: 'G-SZ675CV31W',
+  );
 }

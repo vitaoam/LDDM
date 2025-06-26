@@ -3,6 +3,8 @@ import 'user.dart';
 import 'cliente.dart';
 import 'orcamento.dart';
 import 'firebase_service.dart';
+import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 // TELAS AUXILIARES
 
@@ -301,7 +303,11 @@ class _RealizarConsultaScreenState extends State<RealizarConsultaScreen> {
         dentistaId: widget.dentistaId,
       );
       await FirebaseService.addCliente(cliente);
-      Navigator.pop(context); // Ou navegue para a próxima tela da consulta
+      Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => TelaConsultaDetalhes(cliente: cliente),
+          ),
+      ); // Ou navegue para a próxima tela da consulta
     }
   }
 
@@ -428,180 +434,96 @@ class TelaConsultaDetalhes extends StatefulWidget {
 }
 
 class _TelaConsultaDetalhesState extends State<TelaConsultaDetalhes> {
-  bool gravando = false;
-  bool mostrarBotaoRelatorio = false;
-
-  void _alternarGravacao() {
-    setState(() {
-      gravando = !gravando;
-      if (!gravando) {
-        mostrarBotaoRelatorio = true;
-      }
-    });
-
-    //logica mais tarde
-  }
-
-  void _irParaRelatorio() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => RelatorioConsultaPage(cliente: widget.cliente),
-      ),
-    );
-  }
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+  String _textoTranscrito = "";
 
   @override
+  void initState() {
+    super.initState();
+    _speech = stt.SpeechToText();
+  }
+
+  void _startListening() async {
+    bool available = await _speech.initialize(
+      onStatus: (val) => print('onStatus: $val'),
+      onError: (val) => print('onError: $val'),
+    );
+    if (available) {
+      setState(() => _isListening = true);
+      _speech.listen(
+        onResult: (val) {
+          setState(() {
+            _textoTranscrito = val.recognizedWords;
+          });
+        },
+        localeId: 'pt_BR',
+        listenMode: stt.ListenMode.confirmation,
+        partialResults: true,
+      );
+    }
+  }
+
+  void _stopListening() {
+    _speech.stop();
+    setState(() => _isListening = false);
+  }
+
   @override
   Widget build(BuildContext context) {
-    const amareloPrincipal = Color(0xFFF6A800);
-    const backgroundColor = Color(0xFF1C1C1C);
-
     return Scaffold(
-      backgroundColor: backgroundColor,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Barra superior com o botão de voltar e o título (estilizada)
-          Container(
-            padding: const EdgeInsets.only(
-              top: 40.0,
-              left: 20,
-              right: 20,
-              bottom: 20,
+      appBar: AppBar(
+        title: const Text("Consulta"),
+        backgroundColor: const Color(0xFFFFB500),
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          children: [
+            Text(
+              "Cliente: ${widget.cliente.nome}\nTelefone: ${widget.cliente.telefone}",
+              style: const TextStyle(fontSize: 18, color: Colors.white),
             ),
-            decoration: BoxDecoration(color: backgroundColor, boxShadow: [
-                
-              ],
-            ),
-            child: Row(
+            const SizedBox(height: 30),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                IconButton(
-                  icon: const Icon(
-                    Icons.arrow_back,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                const Spacer(flex: 2),
-                const Text(
-                  "Consulta",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                ElevatedButton.icon(
+                  onPressed: _isListening ? null : _startListening,
+                  icon: const Icon(Icons.mic),
+                  label: const Text("Iniciar Gravação"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFB500),
+                    foregroundColor: Colors.white,
                   ),
                 ),
-                const Spacer(flex: 3),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
+                  onPressed: _isListening ? _stopListening : null,
+                  icon: const Icon(Icons.stop),
+                  label: const Text("Parar Gravação"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
               ],
             ),
-          ),
-          const SizedBox(height: 30),
-
-          // Conteúdo principal (mantida a estrutura, melhorada a apresentação)
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 20),
-                  ColorFiltered(
-                    colorFilter: ColorFilter.mode(
-                      Colors.white.withOpacity(0.9),
-                      BlendMode.modulate,
-                    ),
-                    child: Image.asset("assets/images/dentes.png", width: 700),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Botão de gravação (estilizado)
-                  ElevatedButton(
-                    onPressed: _alternarGravacao,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          gravando ? Colors.red[700] : amareloPrincipal,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 26,
-                        vertical: 12,
-                      ),
-                      elevation: 4,
-                    ),
-                    child: Text(
-                      gravando ? "PARAR GRAVAÇÃO" : "INICIAR GRAVAÇÃO",
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-
-                  // Controles de áudio (estilizados)
-                  Column(
-                    children: [
-                      const Icon(
-                        Icons.play_arrow,
-                        color: Colors.white,
-                        size: 36,
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        width: 220,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[700],
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                        child: Stack(
-                          children: [
-                            Container(
-                              width: 220 * 0.3, // 30% de progresso
-                              decoration: BoxDecoration(
-                                color: amareloPrincipal,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Botão de relatório (aparece/desaparece normalmente)
-                  if (mostrarBotaoRelatorio)
-                    ElevatedButton(
-                      onPressed: _irParaRelatorio,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: amareloPrincipal,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 26,
-                          vertical: 12,
-                        ),
-                        elevation: 4,
-                      ),
-                      child: const Text(
-                        "REVISAR RELATÓRIO",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                ],
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[800],
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                _textoTranscrito.isEmpty ? "Fale algo para transcrever..." : _textoTranscrito,
+                style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
